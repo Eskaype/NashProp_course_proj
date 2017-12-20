@@ -92,7 +92,9 @@ class Node(metaclass=ABCMeta):
     @abstractmethod
     def mf(self, tnode):
         pass
-
+    @abstractmethod
+    def epa(self,tnode):
+        pass
 
 class VNode(Node):
 
@@ -103,7 +105,7 @@ class VNode(Node):
 
     """
 
-    def __init__(self, label, init=None, observed=False):
+    def __init__(self, label, init=None,projection=None, observed=False):
         """Create a variable node."""
         super().__init__(label)
         if init is not None:
@@ -111,6 +113,7 @@ class VNode(Node):
         else:
             self.init = rv.Discrete(np.array([1, 1]), self)
         self.observed = observed
+        self.__projection = projection
 
     @property
     def type(self):
@@ -123,7 +126,18 @@ class VNode(Node):
     @init.setter
     def init(self, init):
         self.__init = init
-
+        
+    def compute_proj(self,tnode):
+        #iterate over Tables for all its neighbours
+        T = self.__projection
+        for n in self.neighbors(tnode):
+            T= np.outer(self[tnode][n]['object'].get_table(tnode, n),T)
+        return
+    def set_table(self,table):
+        self.__projection = table
+        return
+    def get_projection(self):
+        return  self.__projection
     def belief(self, normalize=True):
         """Return belief of the variable node.
 
@@ -202,8 +216,29 @@ class VNode(Node):
             return self.init
         else:
             return self.belief(self.graph)
+    ###### Expected PayOff Algorithm similar to spa or mf 
+    """ 
+           To compute the message/table passed from the variable to Factor . 
+           Outer product of all incoming tables is computed. and table/msg is updated 
+    """
+    def epa(self,tnode,tau,epsilon):
 
-
+        if self.observed:
+            return self.init
+        else:
+            # Initial message
+            #msg = self.init
+            msg = self.get_projection()
+            # Product over incoming messages
+            for n in self.neighbors(tnode):
+                ## Here compute the expected payoff check if the payoffs are smaller than epsilon and update the table+
+                ## Take the table passed by each factor node and compute the outer product
+                msg_neigh = self.graph[n][self]['object'].get_table(n, self)
+                msg = msg*msg_neigh.pmf
+            ret = rv.Discrete(msg,self,tnode)
+            self.__projection = ret.pmf
+            #print(self.get_projection())
+            return ret
 class IOVNode(VNode):
 
     """Input-output variable node.
@@ -325,6 +360,56 @@ class FNode(Node):
 #             msg = msg.int(n)
 
         return msg
+    """
+     Expected Payoff from variable to Factor Node
+        
+    """"
+    def epa(self, tnode,tau,epsilon):
+
+
+            # Initial message
+        msg = self.factor
+
+            # Product over incoming messages
+        for n in self.neighbors(tnode):
+                ## Here compute the expected payoff check if the payoffs are smaller than epsilon and update the table+
+                ## Get probabilities for which the value in the table =1
+            tab_a=[]
+            tab_b = []
+            probability_a=[]
+            T = self.graph[n][self]['object'].get_table(n, self)
+            for i in range(len(T.pmf)):
+                 if np.any(T.pmf[i]==1):
+                    tab_a.append(i)
+                 if np.any(np.transpose(T.pmf[i])==1):
+                    tab_b.append(i)
+
+            probability_a = [i*tau for  i in tab_a]
+            probability_b = [i*tau for i in tab_b]
+            index_a = []
+            index_b =[]
+            index = 0
+            Table = self.graph[n][self]['object'].get_table(n,self)
+            for p in probability_b:
+                 Expected_payoff= np.matmul(np.asarray(msg.pmf),np.array([[p],[1-p]]))
+                 if(abs(Expected_payoff[1]-Expected_payoff[0])>epsilon):
+                         index_b.append(index)
+                 index = index + 1
+            index  = 0
+            for p in probability_a:
+                 Expected_payoff= np.matmul(np.transpose(msg.pmf) ,np.array([[p],[1-p]]))
+                 if(abs(Expected_payoff[1]-Expected_payoff[0])>epsilon):
+                         index_a.append(index)
+                 index = index + 1
+            ## Now set the '1's to '0's
+            Table = self.graph[n][self]['object'].get_table(n,self)
+            for i in index_a:
+                for j in index_b:
+                    Table.pmf[i,j] = 0
+
+
+            return Table
+        return self.graph[tnode][self]['object'].get_table(tnode,self)
 
 
 class IOFNode(FNode):
