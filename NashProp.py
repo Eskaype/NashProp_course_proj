@@ -115,12 +115,13 @@ def make_arbit_graph(num_nodes,graph_mat):
 
 Num_Of_Players = 50
 max_degree = 5
-epsilon = 0.26 ## To be tuned later
+epsilon = 0.26 ## To be tuned for every experiement
 tau = epsilon/(np.power(2,(max_degree+1)*max_degree*np.log(max_degree)))
 # Initialize tables for each Node in the graph
 fg = graphs.FactorGraph()
 P = np.ones([10,10])
 
+## Below create the links of the matrix 
 Mat_link=[]
 for i in range(1,9):
     Mat_link.append((i, i % 9 + 1))
