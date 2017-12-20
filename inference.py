@@ -1,207 +1,74 @@
 """Module for inference algorithms.
 
-This module contains different functions to perform inference on factor graphs.
+This module contains Nash Propagation algorithm to perform inference 
 
 Functions:
-    belief_propagation: Belief propagation
-    sum_product: Sum-product algorithm
-    max_product: Max-product algorithm
-    max_sum: Max-sum algorithm
-    loopy_belief_propagation: Loopy belief propagation
-    mean_field: Mean-field algorithm
 
+    Nash_propagation : Nash Propagation ---------------- This is an addition done for course project 
 """
 
 from random import choice
-
+import networkx as nx
+from fglib import rv
+import numpy as np
+import matplotlib.pyplot as plt
 import networkx as nx
 
 from . import nodes
 
+def nash_propagation(model,iterations,epsilon,tau,query_node=(),order = None):
 
-def belief_propagation(graph, query_node=None):
-    """Belief propagation.
-
-    Perform exact inference on tree structured graphs.
-    Return the belief of all query_nodes.
-
-    """
-
-    if query_node is None:  # pick random node
-        query_node = choice(graph.get_vnodes())
-
-    # Depth First Search to determine edges
-    dfs = nx.dfs_edges(graph, query_node)
-
-    # Convert tuple to reversed list
-    backward_path = list(dfs)
-    forward_path = reversed(backward_path)
-
-    # Messages in forward phase
-    for (v, u) in forward_path:  # Edge direction: u -> v
-        msg = u.spa(v)
-        graph[u][v]['object'].set_message(u, v, msg)
-
-    # Messages in backward phase
-    for (u, v) in backward_path:  # Edge direction: u -> v
-        msg = u.spa(v)
-        graph[u][v]['object'].set_message(u, v, msg)
-
-    # Return marginal distribution
-    return query_node.belief()
-
-
-def sum_product(graph, query_node=None):
-    """Sum-product algorithm.
-
-    Compute marginal distribution on graphs that are tree structured.
-    Return the belief of all query_nodes.
-
-    """
-
-    # Sum-Product algorithm is equivalent to Belief Propagation
-    return belief_propagation(graph, query_node)
-
-
-def max_product(graph, query_node=None):
-    """Max-product algorithm.
-
-    Compute setting of variables with maximum probability on graphs
-    that are tree structured.
-    Return the setting of all query_nodes.
-
-    """
-    track = {}  # Setting of variables
-
-    if query_node is None:  # pick random node
-        query_node = choice(graph.get_vnodes())
-
-    # Depth First Search to determine edges
-    dfs = nx.dfs_edges(graph, query_node)
-
-    # Convert tuple to reversed list
-    backward_path = list(dfs)
-    forward_path = reversed(backward_path)
-
-    # Messages in forward phase
-    for (v, u) in forward_path:  # Edge direction: u -> v
-        msg = u.mpa(v)
-        graph[u][v]['object'].set_message(u, v, msg)
-
-    # Messages in backward phase
-    for (u, v) in backward_path:  # Edge direction: u -> v
-        msg = u.mpa(v)
-        graph[u][v]['object'].set_message(u, v, msg)
-
-    # Maximum argument for query node
-    track[query_node] = query_node.argmax()
-
-    # Back-tracking
-    for (u, v) in backward_path:  # Edge direction: u -> v
-        if v.type == nodes.NodeType.factor_node:
-            for k in v.record[u].keys():  # Iterate over outgoing edges
-                track[k] = v.record[u][k]
-
-    # Return maximum probability for query node and setting of variable
-    return query_node.maximum(), track
-
-
-def max_sum(model, query_node=None):
-    """Max-sum algorithm.
-
-    Compute setting of variable for maximum probability on graphs
-    that are tree structured.
-    Return the setting of all query_nodes.
-
-    """
-    track = {}  # Setting of variables
-
-    if query_node is None:  # pick random node
-        query_node = choice(model.get_vnodes())
-
-    # Depth First Search to determine edges
-    dfs = nx.dfs_edges(model, query_node)
-
-    # Convert tuple to reversed list
-    backward_path = list(dfs)
-    forward_path = reversed(backward_path)
-
-    # Messages in forward phase
-    for (v, u) in forward_path:  # Edge direction: u -> v
-        msg = u.msa(model, v)
-        model[u][v]['object'].set_message(u, v, msg)
-
-    # Messages in backward phase
-    for (u, v) in backward_path:  # Edge direction: u -> v
-        msg = u.msa(model, v)
-        model[u][v]['object'].set_message(u, v, msg)
-
-    # Maximum argument for query node
-    track[query_node] = query_node.argmax(model)
-
-    # Back-tracking
-    for (u, v) in backward_path:  # Edge direction: u -> v
-        if v.TYPE == "fn":
-            for k in v.record[u].keys():  # Iterate over outgoing edges
-                track[k] = v.record[u][k][track[u]]
-
-    # Return maximum probability for query node and setting of variable
-    return query_node.maximum(model), track
-
-
-def loopy_belief_propagation(model, iterations, query_node=(), order=None):
-    """Loopy belief propagation.
-
-    Perform approximative inference on arbitrary structured graphs.
-    Return the belief of all query_nodes.
-
-    """
-    if order is None:
-        fn = [n for (n, attr) in model.nodes(data=True)
-              if attr["type"] == "fn"]
-        vn = [n for (n, attr) in model.nodes(data=True)
-              if attr["type"] == "vn"]
-        order = fn + vn
-    return _schedule(model, 'spa', iterations, query_node, order)
-
-
-def mean_field(model, iterations, query_node=(), order=None):
-    """Mean-field algorithm.
-
-    Perform approximative inference on arbitrary structured graphs.
-    Return the belief of all query_nodes.
-
-    """
-    if order is None:
-        fn = [n for (n, attr) in model.nodes(data=True)
-              if attr["type"] == "fn"]
-        vn = [n for (n, attr) in model.nodes(data=True)
-              if attr["type"] == "vn"]
-        order = fn + vn
-    return _schedule(model, 'mf', iterations, query_node, order)
-
-
-def _schedule(model, method, iterations, query_node, order):
-    """Flooding schedule.
-
-    A flooding scheduler for factor graphs with cycles.
-    A given number of iterations is performed in a defined node order.
-    Return the belief of all query_nodes.
-
-    """
-    b = {n: [] for n in query_node}
-
-    # Iterative message passing
+"""  Perform initialization of variable to factor nodes 
+"""
+    for n in order:
+        if(n.type.value==1):
+            for neighbor in nx.all_neighbors(model,n):
+                table = rv.Discrete(np.ones([10,10]),n,neighbor)
+                model[n][neighbor]['object'].set_table(n, neighbor, table)
+        if(n.type.value == 2):
+            for neighbor in nx.all_neighbors(model, n):
+                table = rv.Discrete(np.ones([10, 10]),n,neighbor)
+                model[n][neighbor]['object'].set_table(n, neighbor, table)
+    step =0
+    grid={}
+"""
+   epa : expected payoff  computation 
+   order : order for the puprose of the project has been limited to starting with all factor nodes and then updating variable nodes
+"""
     for _ in range(iterations):
-
+        print(step)
+        step =step+1
         # Visit nodes in predefined order
         for n in order:
+            #print(n)
             for neighbor in nx.all_neighbors(model, n):
-                msg = getattr(n, method)(model, neighbor)
-                model[n][neighbor]['object'].set_message(n, neighbor, msg)
+                 table = n.epa(neighbor,tau,epsilon)  ## Get message from the neighbour and update
+                 #Set Messgae
+                 #if(n.type.value==2):
+                 #   print("")
+                 if(n.type.value==1):
+                     grid[str(n)] = table.pmf
+                 model[n][neighbor]['object'].set_table(n, neighbor, table)
+            #if the node is a variable node perform a cross product
 
-        # Beliefs of query nodes
-        for n in query_node:
-            b[n].append(n.belief(model))
+            # If the node is a factor node just set the message it passes to its neighbour
+        #print(grid)
+        sub=0
+        #### Uncomment the below codes for plotting 
+        plt.imshow(grid['x1'], cmap='gray', vmin=0, vmax=1)
+        plt.show()
+        print(grid)
+        for i in grid.keys():
+            sub=sub+1
+            plt.subplot(len(grid.keys()),1,sub)
+            plt.imshow(grid[i],cmap='gray', vmin = 0, vmax = 1)
+        plt.show()
+        sub =0
+        for i in grid.keys():
+            sub=sub+1
+            plt.subplot(len(grid.keys()),1,sub)
+            plt.imshow(np.ones(grid[i].shape),cmap='gray', vmin = 0, vmax = 1)
+        plt.show()
+    return grid
 
-    return b
+
