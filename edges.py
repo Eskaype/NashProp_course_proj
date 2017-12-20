@@ -16,8 +16,9 @@ class Edge(object):
     """Edge.
 
     Base class for all edges.
-    Each edge class contains a message attribute,
-    which stores the corresponding message in forward and backward direction.
+    Each edge class contains a message attribute and Table attribute for the NashProp . 
+    Table is anologus to message passing in inference models
+ 
 
     """
 
@@ -29,7 +30,7 @@ class Edge(object):
         # Two-dimensional message list
         self.message = [[None, init],
                         [init, None]]
-
+        self.table = [[None,init],[init,None]]
         # Variable node
         if snode.type == nodes.NodeType.variable_node:
             self.variable = snode
@@ -47,3 +48,9 @@ class Edge(object):
     def get_message(self, snode, tnode):
         """Return value of message from source node to target node."""
         return self.message[self.index[snode]][self.index[tnode]]
+    
+    def set_table(self,snode,tnode,value):
+        self.table[self.index[snode]][self.index[tnode]] = value
+
+    def get_table(self, snode, tnode):
+        return self.table[self.index[snode]][self.index[tnode]]
