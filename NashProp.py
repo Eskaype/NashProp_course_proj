@@ -1,3 +1,10 @@
+
+#/********************************************** NASH PROP ***********************************************************/
+# Nash Prop is build on top fglib and Network X open source libraries in   python. 
+## We reused data strcutures for the variable Nodes and Factor Nodes with modifications to support the algorithm 
+## make_graph() was used for testing the algorithm for manual modifications in the links of the graphs to understand the behavior
+
+
 import numpy as np
 ## Build parameters for NashProp
 from random import choice
@@ -7,7 +14,11 @@ from fglib import rv,graphs,inference
 from fglib import nodes
 from fglib.utils import draw_message,draw
 
-
+#### A note on the Data Structure ####################
+#### As in VNODE class : supports an additional parameter Projection matrix P .--- > contains a matrix of  size tau X tau 
+#### FNode class : is now initalized with the play off matrix between. 
+# F1 be a factor connexting edges x1 ,x2 ,x3 .. it is initialized with a payoff matrix of size 2^3 where actions of each plaers remain binary
+#
 def make_graph():
     G = graphs.FactorGraph()
     x1 = nodes.VNode('x1',rv.Discrete,P)
@@ -51,7 +62,10 @@ def make_graph():
     plt.show()
     inference.nash_propagation(G,20,epsilon,1/30,[x1,x2,x3,x4,x5],order = [fa,fb,fc,fd,fe,ff,fg,x1,x2,x3,x4,x5])
 
-def make_debug_graph(num_nodes,graph_mat):
+### Make arbit graph provides support to generate very large graphs by inputing 
+####  num_nodes --- Number of Players of the game
+#### graph_mat ----  this provides a list of tuple where each tuple is a link in the graph . 
+def make_arbit_graph(num_nodes,graph_mat):
     # Create factor graph
     fg = graphs.FactorGraph()
     # Create variable nodes
@@ -113,5 +127,5 @@ for i in range(1,9):
     Mat_link.append((i, np.random.randint(i+1,10)))
 
 print(Mat_link)
-#make_debug_graph(10,graph_mat=Mat_link)
+#make_arbit_graph(10,graph_mat=Mat_link)
 make_graph()
