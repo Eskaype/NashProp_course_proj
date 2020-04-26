@@ -1,5 +1,8 @@
-# NashProp_course_proj
-![NASH POSTER](https://github.com/Eskaype/NashProp_course_proj/blob/master/nash-prop.png)
+## NashProp_Loopy_Belief_Propagation
+
+This repository implements the `' model for single  source and target in *pytorch* framework based on the paper "*[Nash Propagation for Loopy Graphical Games](https://www.cis.upenn.edu/~mkearns/papers/nashprop.pdf)"
+
+
 Files Included 
 1. Create_game.ipynb : This is based on Gambit library. We precompute for Hotellings Game the Nash Equilibria using gambits internal polynomial solver. 
 
@@ -12,3 +15,7 @@ Files Included
 4. Node.py: EPA algorithm is added into the library . EPA or the expected payoff algorithm. The Msg passing mechanism differs slightly between factor and Variable Nodes
 
 5. Edge.py: The edge tables have been added into the class. These tables are analgous to message passing in probabilistic inference models
+
+
+![NASH POSTER](https://github.com/Eskaype/NashProp_course_proj/blob/master/nash-prop.png)
+
