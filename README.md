@@ -1,5 +1,5 @@
 # NashProp_course_proj
-
+![NASH POSTER](https://github.com/Eskaype/NashProp_course_proj/blob/master/nash-prop-approximate_poster_update(1).pdf)
 Files Included 
 1. Create_game.ipynb : This is based on Gambit library. We precompute for Hotellings Game the Nash Equilibria using gambits internal polynomial solver. 
 
