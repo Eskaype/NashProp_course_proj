@@ -1,6 +1,6 @@
 ## NashProp_Loopy_Belief_Propagation
 
-This repository implements the `' model for single  source and target in *pytorch* framework based on the paper "*[Nash Propagation for Loopy Graphical Games](https://www.cis.upenn.edu/~mkearns/papers/nashprop.pdf)"
+This repository implements the `Loopy belief propagation to compute approximate nash` in *pytorch* framework based on the paper "*[Nash Propagation for Loopy Graphical Games](https://www.cis.upenn.edu/~mkearns/papers/nashprop.pdf)"
 
 
 Files Included 
